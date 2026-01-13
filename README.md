@@ -12,17 +12,17 @@ So I automated it. This tool scrapes lab content and generates ready-to-use temp
 
 ## How It Works
 
-- **Web scraping** - Parses HTML from course lab pages
-- **Smart extraction** - Pulls only deliverable items (bold bullet points)
-- **Local caching** - Avoids repeated requests (24-hour cache)
-- **Dynamic configuration** - Change source URL without modifying code
+1. Fetches the course index page to discover all available labs
+2. For each lab, parses the HTML structure (Google Codelab format)
+3. Extracts only **bold bullet points** - these are the deliverable tasks
+4. Generates a clean `.docx` or `.md` template
 
-No API keys required. Pure Python CLI tool.
+No API keys required. Pure Python CLI tool with local caching.
 
 ## Requirements
 
 - Python 3.10+
-- Internet connection (first run, then cached)
+- Internet connection (first run, then cached for 24 hours)
 
 ## Installation
 
@@ -33,36 +33,6 @@ cd gensec-doc-generator
 source .venv/bin/activate
 ```
 
-## Configuration
-
-The source URL can be configured in multiple ways (highest to lowest priority):
-
-### 1. CLI Flag
-```bash
-gensec-template --url "https://example.com/labs/" list
-gensec-template -u "https://example.com/labs/" generate 01.1
-```
-
-### 2. Environment Variable
-```bash
-export LAB_TEMPLATE_URL="https://example.com/labs/"
-gensec-template list
-```
-
-### 3. Config File
-```bash
-# Save URL to config file
-gensec-template config set "https://example.com/labs/"
-
-# View current configuration
-gensec-template config show
-
-# Reset to default
-gensec-template config reset
-```
-
-Config file location: `~/.config/gensec-template/config.json`
-
 ## Usage
 
 ```bash
@@ -70,22 +40,19 @@ Config file location: `~/.config/gensec-template/config.json`
 gensec-template list
 
 # Generate template for a specific lab
-gensec-template generate 06.1
+gensec-template generate 04.1
 
 # Generate as Markdown
-gensec-template generate 06.1 --format md
+gensec-template generate 04.1 --format md
 
 # Generate all labs for a week
-gensec-template generate-week 01
+gensec-template generate-week 06
 
 # Generate everything
 gensec-template generate-all
 
 # Clear cache (force fresh fetch)
 gensec-template clear-cache
-
-# View cache info
-gensec-template cache-info
 ```
 
 ## Output Example
@@ -93,45 +60,65 @@ gensec-template cache-info
 ```markdown
 # 06.1: Code Generation
 
-## 2. Exercise #1
-- First deliverable task from the lab
-- Second deliverable task
-- Third deliverable task
+## 2. Exercise #1: Code generation
+- Ask an LLM to generate a prompt that can produce the code above
+- Then, in a new chat, send the prompt to the LLM...
+- Handcraft a prompt that allows an LLM to generate code...
 
-## 3. Exercise #2
-- Another set of tasks to complete
-- More items extracted from bold bullets
+## 3. Exercise #2: Unit tests
+- Ask an LLM to instrument the password program...
+- Do the unit tests generated provide sufficient coverage?
 ```
+
+## Configuration (Optional)
+
+The default source URL is `https://codelabs.cs.pdx.edu/cs475/` - no configuration needed for standard use.
+
+To use a **different** course website:
+
+```bash
+# Option 1: CLI flag (one-time)
+gensec-template --url "https://other-site.edu/labs/" list
+
+# Option 2: Environment variable
+export LAB_TEMPLATE_URL="https://other-site.edu/labs/"
+
+# Option 3: Config file (persistent)
+gensec-template config set "https://other-site.edu/labs/"
+
+# View current config
+gensec-template config show
+
+# Reset to default
+gensec-template config reset
+```
+
+## Adapting for Other Sites
+
+If targeting a site with different HTML structure:
+
+1. Modify `parser.py`:
+   - `parse_lab_index_html()` - for the lab listing page
+   - `parse_lab_section_html()` - for individual lab pages
+   - `extract_deliverable_questions()` - for content extraction
+
+2. Clear cache after changes:
+   ```bash
+   gensec-template clear-cache
+   ```
 
 ## Project Structure
 
 ```
 src/gensec_template/
 ├── cli.py        # Command-line interface (Typer)
-├── config.py     # Configuration management
+├── config.py     # URL configuration management
 ├── scraper.py    # Web scraping (httpx)
 ├── parser.py     # HTML parsing (BeautifulSoup)
 ├── generator.py  # Document generation (python-docx)
 ├── cache.py      # Local caching (diskcache)
-└── models.py     # Data models (dataclasses)
+└── models.py     # Data models
 ```
-
-## Adapting for Other Sites
-
-1. Set your URL:
-   ```bash
-   gensec-template config set "https://your-course-site.edu/labs/"
-   ```
-
-2. If the HTML structure differs, modify `parser.py`:
-   - Update `parse_lab_index_html()` for the lab listing page
-   - Update `parse_lab_section_html()` for individual lab pages
-   - Adjust `extract_deliverable_questions()` for content extraction
-
-3. Clear cache after changes:
-   ```bash
-   gensec-template clear-cache
-   ```
 
 ## License
 
