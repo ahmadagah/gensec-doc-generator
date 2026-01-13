@@ -247,7 +247,7 @@ def extract_deliverable_questions(soup: BeautifulSoup) -> list[Question]:
     Extract ONLY bold bullet points from section content.
 
     Deliverable tasks are marked with bold text inside bullet points.
-    This function extracts only those items.
+    This function extracts the FULL text of any li that starts with bold.
 
     Args:
         soup: BeautifulSoup object of the section content.
@@ -267,8 +267,13 @@ def extract_deliverable_questions(soup: BeautifulSoup) -> list[Question]:
         bold_elem = li.find("strong") or li.find("b")
 
         if bold_elem:
-            # Get the text from the bold element
-            text = bold_elem.get_text(strip=True)
+            # Get the FULL text from the entire li element (not just the bold part)
+            # This handles cases where text continues after inline code
+            text = li.get_text(separator=" ", strip=True)
+
+            # Clean up extra whitespace
+            text = " ".join(text.split())
+
             if text:
                 question = Question(
                     text=text,
