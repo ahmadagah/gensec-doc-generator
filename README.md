@@ -1,15 +1,23 @@
-# GenSec Lab Template Generator
+# Lab Template Generator
 
-A standalone CLI tool that generates lab templates for **CS 475/575 Generative Security** at Portland State University.
+A CLI tool that automates the tedious task of creating lab report templates from course websites.
+
+## Why I Built This
+
+I was spending too much time on repetitive documentation work - copying section titles, formatting bullet points, setting up document structure. This is busywork that doesn't help me learn anything new.
+
+So I automated it. This tool scrapes lab content from a course website and generates ready-to-use templates, letting me focus on the actual learning instead of formatting documents.
+
+**Built with Claude Code** as a learning exercise in AI-assisted development.
 
 ## How It Works
 
-- **Live scraping** - Fetches content directly from the [course website](https://codelabs.cs.pdx.edu/cs475/)
-- **Local caching** - Cached for 24 hours to avoid repeated requests
-- **No API keys** - No environment variables or external services required
-- **Offline-capable** - Works offline if content is already cached
+- **Web scraping** - Parses HTML from course lab pages
+- **Smart extraction** - Pulls only deliverable items (bold bullet points)
+- **Local caching** - Avoids repeated network requests (24-hour cache)
+- **Multiple formats** - Outputs `.docx` (Word/Google Docs) or `.md` (Markdown)
 
-This is a pure Python CLI tool. No AI agents, cloud services, or external APIs needed.
+No API keys or external services required. Pure Python CLI tool.
 
 ## Requirements
 
@@ -25,7 +33,7 @@ cd gensec-doc-generator
 source .venv/bin/activate
 ```
 
-Or manually with pip/uv/conda:
+Or manually:
 
 ```bash
 git clone https://github.com/ahmadagah/gensec-doc-generator.git
@@ -37,10 +45,10 @@ pip install .
 ## Usage
 
 ```bash
-# List all labs
+# List all available labs
 gensec-template list
 
-# Generate template for a lab
+# Generate template for a specific lab
 gensec-template generate 06.1
 
 # Generate as Markdown
@@ -49,45 +57,43 @@ gensec-template generate 06.1 --format md
 # Generate all labs for a week
 gensec-template generate-week 01
 
-# Generate everything
-gensec-template generate-all
-
-# Clear cache (force fresh fetch)
+# Clear cache
 gensec-template clear-cache
 ```
 
-## Output
-
-Generates `.docx` (Google Docs compatible) or `.md` files with:
-- Lab title as main heading
-- Section titles as subheadings
-- Only the **bold bullet points** (deliverable tasks)
+## Output Example
 
 ```markdown
 # 06.1: Code Generation
 
-## 2. Exercise #1: Code generation
-- Ask an LLM to generate a prompt that can produce the code above
-- Then, in a new chat, send the prompt to the LLM...
-- Handcraft a prompt that allows an LLM to generate code...
+## 2. Exercise #1
+- First deliverable task from the lab
+- Second deliverable task
+- Third deliverable task
 
-## 3. Exercise #2: Unit tests
-- Ask an LLM to instrument the password program...
-- Do the unit tests generated provide sufficient coverage?
-- Run the generated program and analyze the results
+## 3. Exercise #2
+- Another set of tasks to complete
+- More items extracted from bold bullets
 ```
 
-## Troubleshooting
+## Project Structure
 
-**Command not found**: Activate the virtual environment first
-```bash
-source .venv/bin/activate
+```
+src/gensec_template/
+├── cli.py        # Command-line interface (Typer)
+├── scraper.py    # Web scraping (httpx)
+├── parser.py     # HTML parsing (BeautifulSoup)
+├── generator.py  # Document generation (python-docx)
+├── cache.py      # Local caching (diskcache)
+└── models.py     # Data models (dataclasses)
 ```
 
-**Stale content**: Clear the cache
-```bash
-gensec-template clear-cache
-```
+## Customization
+
+To adapt this for a different course website:
+1. Update `BASE_URL` in `scraper.py`
+2. Modify `parser.py` to match the HTML structure of your target site
+3. Adjust extraction logic in `extract_deliverable_questions()`
 
 ## License
 
