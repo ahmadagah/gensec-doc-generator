@@ -1,25 +1,31 @@
 """
-Command-line interface for the gensec-template CLI tool.
+Command-line interface for the lab template CLI tool.
 
 This module provides the CLI commands for listing labs, generating templates,
-and managing the cache.
+and managing the cache and configuration.
 """
 
 import re
-import sys
 from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from .cache import get_cache, clear_global_cache
+from .config import (
+    get_config,
+    get_config_info,
+    save_config_file,
+    Config,
+    CONFIG_FILE,
+    ENV_BASE_URL,
+)
 from .generator import generate_docx, generate_markdown
 from .models import Lab, LabIndex
-from .scraper import get_scraper, ScraperError
+from .scraper import Scraper, ScraperError
 
 __version__ = "0.1.0"
 
@@ -36,6 +42,9 @@ console = Console()
 
 # Default output directory
 DEFAULT_OUTPUT_DIR = Path("./output")
+
+# Global URL override (set by --url flag)
+_url_override: Optional[str] = None
 
 
 def version_callback(value: bool):
@@ -56,15 +65,35 @@ def main_callback(
         is_eager=True,
         help="Show version and exit",
     ),
+    url: Optional[str] = typer.Option(
+        None,
+        "--url",
+        "-u",
+        help="Override the base URL for the course website",
+        envvar=ENV_BASE_URL,
+    ),
 ):
     """
     Lab Template Generator
 
     Generate Google Docs-compatible templates for lab assignments.
 
-    Run 'gensec-template list' to see available labs.
+    The base URL can be configured via:
+    - --url flag (highest priority)
+    - LAB_TEMPLATE_URL environment variable
+    - Config file (~/.config/gensec-template/config.json)
+    - Default value (lowest priority)
+
+    Run 'gensec-template config show' to see current configuration.
     """
-    pass
+    global _url_override
+    _url_override = url
+
+
+def get_scraper_with_config() -> Scraper:
+    """Get a scraper instance with the current configuration."""
+    config = get_config(_url_override)
+    return Scraper(base_url=config.base_url)
 
 
 def print_error(message: str, hint: str = None):
@@ -87,6 +116,10 @@ def print_network_error():
 def get_lab_index_with_cache() -> LabIndex:
     """Get the lab index, using cache if available."""
     cache = get_cache()
+    config = get_config(_url_override)
+
+    # Include URL in cache key to handle different sources
+    cache_key = f"index_{hash(config.base_url)}"
     index = cache.get_lab_index()
 
     if index is None:
@@ -96,7 +129,7 @@ def get_lab_index_with_cache() -> LabIndex:
             console=console,
         ) as progress:
             progress.add_task("Fetching lab index...", total=None)
-            scraper = get_scraper()
+            scraper = get_scraper_with_config()
             index = scraper.scrape_lab_index_sync()
             cache.set_lab_index(index)
 
@@ -129,7 +162,7 @@ def get_full_lab(lab_id_or_number: str, use_cache: bool = True) -> Optional[Lab]
         console=console,
     ) as progress:
         progress.add_task(f"Fetching sections for {lab.number}: {lab.title}...", total=None)
-        scraper = get_scraper()
+        scraper = get_scraper_with_config()
         lab = scraper.scrape_lab_sections_sync(lab)
         cache.set_lab(lab)
 
@@ -161,6 +194,9 @@ def resolve_lab_identifier(identifier: str) -> Optional[str]:
 def list_labs():
     """List all available labs from the course website."""
     try:
+        config = get_config(_url_override)
+        console.print(f"[dim]Source: {config.base_url}[/dim]\n")
+
         index = get_lab_index_with_cache()
 
         if not index.labs:
@@ -391,6 +427,67 @@ def generate_all(
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
+
+
+# Config subcommand group
+config_app = typer.Typer(help="Manage configuration")
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("show")
+def config_show():
+    """Show current configuration and sources."""
+    info = get_config_info()
+    config = get_config(_url_override)
+
+    console.print("[bold]Configuration[/bold]\n")
+
+    # Show effective URL
+    console.print(f"  [cyan]Base URL:[/cyan] {config.base_url}")
+
+    # Show source
+    if _url_override:
+        source = "CLI flag (--url)"
+    elif info["env_var_set"]:
+        source = f"Environment variable ({ENV_BASE_URL})"
+    elif info["config_file_exists"]:
+        source = f"Config file ({CONFIG_FILE})"
+    else:
+        source = "Default"
+
+    console.print(f"  [dim]Source:[/dim] {source}")
+
+    console.print("\n[bold]Configuration Sources[/bold]\n")
+    console.print(f"  [dim]Config file:[/dim] {CONFIG_FILE}")
+    console.print(f"  [dim]  Exists:[/dim] {'Yes' if info['config_file_exists'] else 'No'}")
+    console.print(f"  [dim]Env variable:[/dim] {ENV_BASE_URL}")
+    console.print(f"  [dim]  Set:[/dim] {'Yes' if info['env_var_set'] else 'No'}")
+    console.print(f"  [dim]Default URL:[/dim] {info['default_url']}")
+
+
+@config_app.command("set")
+def config_set(
+    url: str = typer.Argument(..., help="The base URL to save"),
+):
+    """Save a base URL to the config file."""
+    config = Config(base_url=url)
+
+    if save_config_file(config):
+        console.print(f"[green]Configuration saved to {CONFIG_FILE}[/green]")
+        console.print(f"[dim]Base URL: {url}[/dim]")
+    else:
+        console.print(f"[red]Failed to save configuration[/red]")
+        raise typer.Exit(1)
+
+
+@config_app.command("reset")
+def config_reset():
+    """Remove the config file and use defaults."""
+    if CONFIG_FILE.exists():
+        CONFIG_FILE.unlink()
+        console.print("[green]Configuration reset to defaults[/green]")
+    else:
+        console.print("[dim]No config file to remove[/dim]")
 
 
 @app.command("clear-cache")
