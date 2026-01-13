@@ -1,9 +1,8 @@
 """
-Data models for the gensec-template CLI tool.
+Data models for the lab template CLI tool.
 
 This module defines the core data structures used throughout the application
-for representing labs, sections, and questions scraped from the GenSec
-documentation website.
+for representing labs, sections, and questions scraped from course websites.
 """
 
 from dataclasses import dataclass, field, asdict

@@ -1,8 +1,8 @@
 """
-HTML parser for the gensec-template CLI tool.
+HTML parser for the lab template CLI tool.
 
-This module provides functionality to parse HTML content from the GenSec
-lab website and extract structured data about labs, sections, and questions.
+This module provides functionality to parse HTML content from course
+lab websites and extract structured data about labs, sections, and questions.
 """
 
 import re
@@ -246,8 +246,8 @@ def extract_deliverable_questions(soup: BeautifulSoup) -> list[Question]:
     """
     Extract ONLY bold bullet points from section content.
 
-    On the GenSec lab website, deliverable tasks are marked with bold text
-    inside bullet points. This function extracts only those items.
+    Deliverable tasks are marked with bold text inside bullet points.
+    This function extracts only those items.
 
     Args:
         soup: BeautifulSoup object of the section content.

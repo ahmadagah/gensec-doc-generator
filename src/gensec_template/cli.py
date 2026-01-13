@@ -26,7 +26,7 @@ __version__ = "0.1.0"
 # Create the CLI app
 app = typer.Typer(
     name="gensec-template",
-    help="Generate Google Docs templates for CS 475/575 Gen-Sec labs",
+    help="Generate lab report templates from course websites",
     add_completion=False,
     no_args_is_help=True,
 )
@@ -42,7 +42,7 @@ def version_callback(value: bool):
     """Print version and exit."""
     if value:
         console.print(f"[bold cyan]gensec-template[/bold cyan] version {__version__}")
-        console.print("[dim]Generate Google Docs templates for CS 475/575 Gen-Sec labs[/dim]")
+        console.print("[dim]Generate lab report templates from course websites[/dim]")
         raise typer.Exit()
 
 
@@ -58,10 +58,9 @@ def main_callback(
     ),
 ):
     """
-    GenSec Lab Template Generator
+    Lab Template Generator
 
-    Generate Google Docs-compatible templates for CS 475/575
-    Generative Security Application Engineering lab assignments.
+    Generate Google Docs-compatible templates for lab assignments.
 
     Run 'gensec-template list' to see available labs.
     """
@@ -169,7 +168,7 @@ def list_labs():
             return
 
         # Create a nice table
-        table = Table(title="CS 475/575: Generative Security Application Engineering")
+        table = Table(title="Available Labs")
         table.add_column("Number", style="cyan", no_wrap=True)
         table.add_column("Title", style="white")
         table.add_column("Duration", style="green", justify="right")

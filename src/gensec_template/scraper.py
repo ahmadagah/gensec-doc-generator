@@ -1,8 +1,8 @@
 """
-Web scraper for the gensec-template CLI tool.
+Web scraper for the lab template CLI tool.
 
-This module provides functionality to scrape lab data from the GenSec
-course website, including the lab index and individual lab sections.
+This module provides functionality to scrape lab data from a course
+website, including the lab index and individual lab sections.
 """
 
 import asyncio
@@ -38,7 +38,7 @@ class ScraperError(Exception):
 
 class Scraper:
     """
-    Web scraper for GenSec lab content.
+    Web scraper for lab content.
 
     Provides methods to fetch and parse lab data from the course website
     with retry logic and error handling.
