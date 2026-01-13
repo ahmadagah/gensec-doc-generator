@@ -22,8 +22,7 @@ dist/
 *.swo
 
 # Output files (users generate their own)
-output/*.docx
-output/*.md
+output/
 
 # Cache
 .cache/
