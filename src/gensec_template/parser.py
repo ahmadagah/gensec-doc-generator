@@ -244,10 +244,10 @@ def parse_lab_section_html(html: str, section_number: int) -> Section:
 
 def extract_deliverable_questions(soup: BeautifulSoup) -> list[Question]:
     """
-    Extract ONLY deliverable bullet points from section content.
+    Extract ONLY bold bullet points from section content.
 
-    This function identifies bullet points that represent actual tasks
-    requiring student action, filtering out instructional bullet points.
+    On the GenSec lab website, deliverable tasks are marked with bold text
+    inside bullet points. This function extracts only those items.
 
     Args:
         soup: BeautifulSoup object of the section content.
@@ -259,48 +259,23 @@ def extract_deliverable_questions(soup: BeautifulSoup) -> list[Question]:
 
     # Find all list items
     for li in soup.find_all("li"):
-        text = li.get_text(strip=True)
-        if not text:
-            continue
-
-        lower_text = text.lower()
-
         # Skip if inside a code block
         if li.find_parent("pre") or li.find_parent("code"):
             continue
 
-        # Skip if it matches exclusion patterns (instructions)
-        if any(excl in lower_text for excl in EXCLUSION_INDICATORS):
-            continue
+        # Check if the li contains bold text (strong or b tag)
+        bold_elem = li.find("strong") or li.find("b")
 
-        # Check if this starts with a deliverable action verb
-        is_deliverable = any(
-            lower_text.startswith(starter) for starter in DELIVERABLE_STARTERS
-        )
-
-        # Also check for OdinId mentions - these are almost always deliverables
-        has_odinid = "odinid" in lower_text or "odin id" in lower_text
-
-        # Check for common deliverable patterns
-        has_deliverable_pattern = any(
-            pattern in lower_text
-            for pattern in [
-                "include your",
-                "in your submission",
-                "in the report",
-                "screenshot of",
-                "show the",
-                "demonstrate that",
-            ]
-        )
-
-        if is_deliverable or has_odinid or has_deliverable_pattern:
-            question = Question(
-                text=text,
-                requires_screenshot="screenshot" in lower_text,
-                requires_odinid=has_odinid,
-            )
-            questions.append(question)
+        if bold_elem:
+            # Get the text from the bold element
+            text = bold_elem.get_text(strip=True)
+            if text:
+                question = Question(
+                    text=text,
+                    requires_screenshot=False,
+                    requires_odinid=False,
+                )
+                questions.append(question)
 
     return questions
 

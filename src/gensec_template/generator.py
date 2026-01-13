@@ -81,10 +81,8 @@ def generate_docx(lab: Lab, output_path: str) -> str:
 
     Creates a Word document with:
     - Lab title as Heading 1
-    - Section titles as Heading 2
+    - Section titles as Heading 2 (only sections with questions)
     - Bullet points for each question/task
-    - Screenshot indicators where required
-    - Answer placeholders
 
     Args:
         lab: The Lab object containing all lab data.
@@ -100,30 +98,23 @@ def generate_docx(lab: Lab, output_path: str) -> str:
 
     # Add lab title as Heading 1
     title = f"{lab.number}: {lab.title}"
-    heading = doc.add_heading(title, level=1)
+    doc.add_heading(title, level=1)
 
-    # Process each section
+    # Process each section (only include sections with questions)
     for section in lab.sections:
+        # Skip sections with no questions
+        if not section.questions:
+            continue
+
         # Add section title as Heading 2
         section_title = f"{section.number}. {section.title}"
         doc.add_heading(section_title, level=2)
 
         # Add bullet points for each question
         for question in section.questions:
-            # Add the question as a bullet point
-            para = doc.add_paragraph(question.text, style="List Bullet")
+            doc.add_paragraph(question.text, style="List Bullet")
 
-            # Add screenshot indicator if required
-            if question.requires_screenshot:
-                screenshot_para = doc.add_paragraph()
-                run = screenshot_para.add_run("[Screenshot Required]")
-                run.italic = True
-
-        # Add answer placeholder
-        answer_para = doc.add_paragraph()
-        answer_para.add_run("[Answer:]")
-
-        # Add empty paragraph for answer space
+        # Add spacing between sections
         doc.add_paragraph()
 
     # Ensure output directory exists
@@ -142,10 +133,8 @@ def generate_markdown(lab: Lab, output_path: str) -> str:
 
     Creates a Markdown file with:
     - Lab title as H1 (# heading)
-    - Section titles as H2 (## heading)
+    - Section titles as H2 (## heading) - only sections with questions
     - Bullet points (- ) for each question/task
-    - Screenshot indicators where required
-    - Answer placeholders
 
     Args:
         lab: The Lab object containing all lab data.
@@ -161,8 +150,12 @@ def generate_markdown(lab: Lab, output_path: str) -> str:
     lines.append(f"# {title}")
     lines.append("")
 
-    # Process each section
+    # Process each section (only include sections with questions)
     for section in lab.sections:
+        # Skip sections with no questions
+        if not section.questions:
+            continue
+
         # Add section title as H2
         section_title = f"{section.number}. {section.title}"
         lines.append(f"## {section_title}")
@@ -172,15 +165,6 @@ def generate_markdown(lab: Lab, output_path: str) -> str:
         for question in section.questions:
             lines.append(f"- {question.text}")
 
-            # Add screenshot indicator if required
-            if question.requires_screenshot:
-                lines.append("  - *[Screenshot Required]*")
-
-        lines.append("")
-
-        # Add answer placeholder
-        lines.append("[Answer:]")
-        lines.append("")
         lines.append("")
 
     # Ensure output directory exists
